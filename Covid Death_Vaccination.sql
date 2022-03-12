@@ -1,34 +1,65 @@
 use covid_portfolio;
 
 -- Viewing Data
-SELECT *  FROM `covid-343315.portfolio_project.deaths`
-order by location, date;
+SELECT 
+    *
+FROM
+    `covid-343315.portfolio_project.deaths`
+ORDER BY location , date;
 
-select * from `covid-343315.portfolio_project.Vaccination`;
 
-select location, date, total_cases, new_cases, total_deaths, population
-from `covid-343315.portfolio_project.deaths`
-order by location, date;
+-- Selecting important Columns
+
+SELECT 
+    location,
+    date,
+    total_cases,
+    new_cases,
+    total_deaths,
+    population
+FROM
+    `covid-343315.portfolio_project.deaths`
+ORDER BY location , date;
 
 -- finding percentage of deaths after having covid 
 
-select location, date, (total_deaths/total_cases)*100 as percentageDeath,total_cases, total_deaths
-from `covid-343315.portfolio_project.deaths`
-where location = "India"
-order by location, date;
+SELECT 
+    location,
+    date,
+    (total_deaths / total_cases) * 100 AS percentageDeath,
+    total_cases,
+    total_deaths
+FROM
+    `covid-343315.portfolio_project.deaths`
+WHERE
+    location = 'India'
+ORDER BY location , date;
 
 -- Cases vs population
 
-select location, date, total_cases, total_deaths, population, (total_cases/population)*100 as percent_population_infected
-from `covid-343315.portfolio_project.deaths`
-where location = "India"
-order by location, date;
+SELECT 
+    location,
+    date,
+    total_cases,
+    total_deaths,
+    population,
+    (total_cases / population) * 100 AS percent_population_infected
+FROM
+    `covid-343315.portfolio_project.deaths`
+WHERE
+    location = 'India'
+ORDER BY location , date;
 
---finding which country has highest infection rate
-select location,population, max(total_cases) as total_cases,max((total_cases/population)*100) as percent_population_infected
-from `covid-343315.portfolio_project.deaths`
-GROUP BY location,population
-order by percent_population_infected desc ;
+-- finding which country has highest infection rate
+SELECT 
+    location,
+    population,
+    MAX(total_cases) AS total_cases,
+    MAX((total_cases / population) * 100) AS percent_population_infected
+FROM
+    `covid-343315.portfolio_project.deaths`
+GROUP BY location , population
+ORDER BY percent_population_infected DESC;
 
 -------------------------
 # finding total death rate
@@ -60,6 +91,7 @@ ORDER BY
   dea.date;
 
 -- Rolling count of percetage of population Vaccinated with atleast one doze or both using CTE
+
 with CTE_covid as
 (SELECT
   dea.continent,
@@ -82,5 +114,28 @@ ORDER BY
   dea.date)
 select *,
 (rollingVaccinations/population)*100 as rollingVacciantionPercentage 
-from CTE_covid
-where location = "India";
+from CTE_covid;
+
+
+-- Creating Views
+
+create view	PopulationVaccinated as 
+SELECT
+  dea.continent,
+  dea.location,
+  cast(dea.date as date) as date,
+  dea.population,
+  cast(vac.new_vaccinations as unsigned) as new_vaccination,
+  SUM(cast(vac.new_vaccinations as unsigned)) OVER (PARTITION BY dea.location ORDER BY dea.location,cast(dea.date as date)) as rollingVaccinations
+FROM
+  covid_portfolio.coviddeaths AS dea
+JOIN
+  covid_portfolio.covidvaccination AS vac
+ON
+  dea.location = vac.location
+  AND dea.date = vac.date
+WHERE
+  dea.continent IS NOT NULL
+ORDER BY
+  dea.location,
+  dea.date;
